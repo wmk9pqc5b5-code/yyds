@@ -125,11 +125,11 @@ jobs:
           # 方法: 编译为普通 objc dylib
           # 注意: MSHookFunction 的调用需要 substrate 库, 在 Ubuntu 上我们用 dlsym 替代
           
-          cat > /tmp/yyds_stub.c << 'STUB'
+          cat > /tmp/yyds_stub.c << ENDSTUB
           // Stub for substrate functions — 运行时由 Cydia Substrate 提供
-          void MSHookFunction(void *symbol, void *replace, void **result) {}
-          void MSHookMessageEx(Class cls, SEL sel, IMP imp, IMP *result) {}
-          STUB
+          void MSHookFunction(void *symbol, void *replace, void **result) { }
+          void MSHookMessageEx(Class cls, SEL sel, IMP imp, IMP *result) { }
+          ENDSTUB
 
           # 将 Tweak.xm 编译为 arm64 dylib
           arm64-apple-darwin-clang 2>/dev/null && {
@@ -188,7 +188,7 @@ jobs:
             fi
 
             # 创建 control 文件
-            cat > $DEB_DIR/DEBIAN/control << 'CONTROL'
+            tee $DEB_DIR/DEBIAN/control > /dev/null << ENDCTL
 Package: com.yyds.bypass
 Name: yyds 游戏检测屏蔽器
 Version: 1.0.0
@@ -198,7 +198,7 @@ Maintainer: yyds
 Author: yyds
 Section: Tweaks
 Depends: mobilesubstrate, firmware (>= 14.0)
-CONTROL
+ENDCTL
 
             # 设置权限
             chmod 755 $DEB_DIR/DEBIAN
