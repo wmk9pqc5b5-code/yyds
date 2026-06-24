@@ -1,0 +1,12 @@
+# Theos build
+.theos/
+packages/
+*.deb
+obj/
+
+# IDE
+.vscode/
+.idea/
+
+# macOS
+.DS_Store

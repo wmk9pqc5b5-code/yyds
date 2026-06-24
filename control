@@ -1,0 +1,25 @@
+Package: com.yyds.bypass
+Name: yyds 游戏检测屏蔽器
+Version: 1.0.0
+Architecture: iphoneos-arm
+Description: 腾讯 TSS 游戏安全模块本地检测全屏蔽
+ 基于 IDA 逆向分析, 精准 Hook 12 个检测函数:
+  - sysctl (P_TRACED / 进程列表)
+  - mach_vm_region_recurse (内存区域枚举)
+  - vm_region_64 (内存布局扫描)
+  - proc_regionfilename (区域路径名)
+  - _dyld_image_count / _dyld_get_image_name (dyld枚举)
+  - dladdr (模块地址解析)
+  - ptrace (PT_DENY_ATTACH)
+  - task_for_pid (跨进程访问)
+ 
+ 四个滑块控制:
+  滑块1 → 启动屏蔽
+  滑块2 → 退出屏蔽
+  滑块3 → 查看监控日志
+  滑块4 → 退出程序 (Respring)
+
+Maintainer: yyds <yyds@local>
+Author: yyds
+Section: Tweaks
+Depends: mobilesubstrate (>= 0.9.5000), preferenceloader (>= 2.2.2), firmware (>= 14.0)

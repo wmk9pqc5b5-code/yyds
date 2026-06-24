@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>items</key>
+    <array>
+        <!-- ====== 标题区域 ====== -->
+        <dict>
+            <key>cell</key>
+            <string>PSGroupCell</string>
+            <key>label</key>
+            <string>yyds 游戏检测屏蔽器 v1.0</string>
+            <key>footerText</key>
+            <string>基于 IDA 逆向分析, 精准屏蔽腾讯 TSS 安全模块全部本地检测。
+注入内存修改工具前, 请先启动屏蔽。
+
+📋 已屏蔽检测项:
+  • sysctl P_TRACED 调试检测
+  • mach_vm_region 内存区域枚举
+  • vm_region_64 内存布局扫描
+  • proc_regionfilename 区域路径检测
+  • dyld 镜像数量/名称枚举
+  • dladdr 模块地址解析
+  • ptrace PT_DENY_ATTACH
+  • task_for_pid 跨进程访问</string>
+        </dict>
+
+        <!-- ====== 滑块1: 启动屏蔽 ====== -->
+        <dict>
+            <key>cell</key>
+            <string>PSButtonCell</string>
+            <key>label</key>
+            <string>🔰 滑块1: 启动屏蔽</string>
+            <key>action</key>
+            <string>slider1_start_shield</string>
+            <key>isDestructive</key>
+            <false/>
+        </dict>
+
+        <!-- ====== 滑块2: 退出屏蔽 ====== -->
+        <dict>
+            <key>cell</key>
+            <string>PSButtonCell</string>
+            <key>label</key>
+            <string>🛑 滑块2: 退出屏蔽</string>
+            <key>action</key>
+            <string>slider2_stop_shield</string>
+            <key>isDestructive</key>
+            <false/>
+        </dict>
+
+        <!-- ====== 状态指示 ====== -->
+        <dict>
+            <key>cell</key>
+            <string>PSGroupCell</string>
+            <key>label</key>
+            <string>监控与退出</string>
+        </dict>
+
+        <!-- ====== 滑块3: 查看监控日志 ====== -->
+        <dict>
+            <key>cell</key>
+            <string>PSButtonCell</string>
+            <key>label</key>
+            <string>📊 滑块3: 查看监控日志</string>
+            <key>action</key>
+            <string>slider3_view_monitor</string>
+        </dict>
+
+        <!-- ====== 滑块4: 退出程序 ====== -->
+        <dict>
+            <key>cell</key>
+            <string>PSButtonCell</string>
+            <key>label</key>
+            <string>⏻ 滑块4: 退出程序 (Respring)</string>
+            <key>action</key>
+            <string>slider4_exit_program</string>
+            <key>isDestructive</key>
+            <true/>
+        </dict>
+
+        <!-- ====== 帮助信息 ====== -->
+        <dict>
+            <key>cell</key>
+            <string>PSGroupCell</string>
+            <key>label</key>
+            <string>使用说明</string>
+            <key>footerText</key>
+            <string>🔧 使用步骤:
+1. 先点击「滑块1」启动屏蔽
+2. 打开目标游戏
+3. 注入你的内存修改工具
+4. 打开「滑块3」查看监控日志
+5. 确认无异常检测后开始使用
+6. 退出时点击「滑块4」
+
+📁 文件位置:
+  配置文件: /var/mobile/Documents/yyds_config.txt
+  监控日志: /var/mobile/Documents/yyds_log.txt
+
+⚠️ 免责声明:
+  本工具仅供学习研究使用, 请勿用于
+  任何违反游戏服务条款的行为。</string>
+        </dict>
+    </array>
+
+    <key>title</key>
+    <string>yyds 屏蔽器</string>
+</dict>
+</plist>

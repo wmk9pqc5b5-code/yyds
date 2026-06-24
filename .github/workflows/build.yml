@@ -1,0 +1,201 @@
+# ============================================================
+#  yyds.dylib — GitHub Actions 自动编译
+#
+#  触发条件:
+#    - push 到 main/master 分支
+#    - 手动触发 (workflow_dispatch)
+#
+#  产物:
+#    yyds.dylib (原始动态库)
+#    com.yyds.bypass_*.deb (越狱安装包)
+# ============================================================
+
+name: yyds Build
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - 'Tweak.xm'
+      - 'Makefile'
+      - 'control'
+      - 'yyds.plist'
+      - 'YYDSRootListController.*'
+      - 'Resources/**'
+      - '.github/workflows/build.yml'
+  workflow_dispatch:        # 允许手动触发
+    inputs:
+      debug:
+        description: '启用 Debug 编译'
+        type: boolean
+        default: false
+
+jobs:
+  build:
+    name: 编译 yyds (${{ matrix.sdk }})
+    runs-on: macos-13        # Intel Mac runner, 兼容性最好
+    strategy:
+      fail-fast: false
+      matrix:
+        sdk: [iphoneos]
+
+    steps:
+      # ==========================================
+      # Step 1: 检出代码
+      # ==========================================
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      # ==========================================
+      # Step 2: 安装 Theos 依赖
+      # ==========================================
+      - name: 安装编译依赖
+        run: |
+          echo "::group::安装 brew 工具"
+          brew install ldid make perl 2>/dev/null || true
+          echo "::endgroup::"
+
+          echo "::group::安装 Theos"
+          export THEOS=/opt/theos
+          sudo mkdir -p $THEOS
+          sudo chown -R $(whoami) $THEOS
+
+          # 使用 sparse checkout 加速 (只取需要的最小文件)
+          git clone --depth 1 --filter=blob:none --sparse \
+            https://github.com/theos/theos.git $THEOS 2>/dev/null || true
+          cd $THEOS
+          git sparse-checkout set \
+            makefiles \
+            bin \
+            lib \
+            include \
+            vendor \
+            share 2>/dev/null || true
+
+          # 下载 SDK (如果 clone 没包含的话)
+          if [ ! -d "$THEOS/sdks" ] && [ ! -d "$THEOS/vendor/sdks" ]; then
+            echo "下载 iPhoneOS SDK 补丁..."
+            mkdir -p $THEOS/sdks
+            # 创建符号链接到 Xcode SDK
+            ln -sf $(xcrun --sdk iphoneos --show-sdk-path) $THEOS/sdks/
+          fi
+
+          echo "THEOS=$THEOS" >> $GITHUB_ENV
+          echo "$THEOS/bin" >> $GITHUB_PATH
+          echo "::endgroup::"
+
+      # ==========================================
+      # Step 3: 验证环境
+      # ==========================================
+      - name: 验证编译环境
+        run: |
+          echo "========== 环境信息 =========="
+          echo "macOS: $(sw_vers -productVersion)"
+          echo "Xcode: $(xcodebuild -version | head -1)"
+          echo "SDK:   $(xcrun --sdk iphoneos --show-sdk-path)"
+          echo "clang: $(clang --version | head -1)"
+          echo "THEOS: $THEOS"
+          echo "=============================="
+
+      # ==========================================
+      # Step 4: 编译项目
+      # ==========================================
+      - name: 编译 yyds
+        id: build
+        run: |
+          export THEOS=${{ env.THEOS }}
+          export THEOS_PACKAGE_SCHEME=rootless
+
+          echo "::group::make clean"
+          make clean 2>&1 || true
+          echo "::endgroup::"
+
+          echo "::group::make package"
+          if [ "${{ github.event.inputs.debug }}" = "true" ]; then
+            export DEBUG=1
+          fi
+          make package FINALPACKAGE=1 2>&1
+          echo "::endgroup::"
+
+          # 列出产物
+          echo "::group::编译产物"
+          ls -la packages/ 2>/dev/null || echo "无 packages 目录"
+          ls -la *.dylib *.deb 2>/dev/null || echo "无 dylib/deb 文件"
+          echo "::endgroup::"
+
+          # 设置输出变量
+          DEB_FILE=$(ls packages/*.deb 2>/dev/null | head -1)
+          if [ -n "$DEB_FILE" ]; then
+            echo "deb_file=$DEB_FILE" >> $GITHUB_OUTPUT
+          fi
+        continue-on-error: false
+
+      # ==========================================
+      # Step 5: 上传产物到 Artifacts
+      # ==========================================
+      - name: 上传 deb 安装包
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: yyds-deb-${{ github.sha }}
+          path: |
+            packages/*.deb
+            *.deb
+          retention-days: 90
+          compression-level: 0
+
+      - name: 上传 dylib 文件 (备选)
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: yyds-dylib-${{ github.sha }}
+          path: |
+            *.dylib
+            .theos/**/yyds.dylib
+          retention-days: 90
+          compression-level: 0
+
+  # ==========================================
+  # Job 2: 创建 GitHub Release (仅 push tag 时)
+  # ==========================================
+  release:
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: 下载编译产物
+        uses: actions/download-artifact@v4
+        with:
+          name: yyds-deb-${{ github.sha }}
+
+      - name: 创建 Release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: "yyds ${{ github.ref_name }}"
+          body: |
+            ## yyds.dylib — 腾讯 TSS 游戏检测屏蔽器 ${{ github.ref_name }}
+
+            ### 编译环境
+            - macOS 13 + Xcode (GitHub Actions)
+            - iPhoneOS SDK
+            - arm64 / arm64e
+
+            ### 安装方式
+            1. 下载 `.deb` 文件
+            2. 用 Filza 安装 或 `dpkg -i`
+            3. Respring 设备
+            4. 打开「设置」→「yyds 屏蔽器」控制
+
+            ### 文件说明
+            - `*.deb` → 越狱设备安装包 (推荐)
+            - `*.dylib` → 原始动态库 (开发者调试用)
+
+            ### Hash
+            ```
+            ${{ github.sha }}
+            ```
+          files: |
+            *.deb
+            *.dylib
+          draft: false
+          prerelease: false
